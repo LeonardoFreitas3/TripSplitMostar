@@ -54,9 +54,10 @@ alter table trips enable row level security;
 
 -- Sem login: qualquer pessoa com o URL da app pode ler e editar o itinerário.
 create policy "acesso publico" on trips for all using (true) with check (true);
-
-insert into trips (id, data) values ('split-mostar', '{}'::jsonb);
 ```
+
+Uma linha por viagem; o título e os dias vivem todos dentro do `data`. As
+viagens criam-se na app (**+ Nova viagem**), não é preciso inserir nada à mão.
 
 Depois copia `.env.example` para `.env` e preenche com o **Project URL** e a
 **anon key** (Settings → API). Para o GitHub Pages, mete os mesmos dois valores
@@ -67,24 +68,27 @@ em **Settings → Secrets and variables → Actions**, com os mesmos nomes.
 > quiseres travar, ativa Auth no Supabase e troca a policy por `auth.uid() is
 > not null`.
 
-Sem as variáveis definidas, a app volta a guardar em `localStorage` — dá para
-desenvolver localmente sem Supabase nenhum.
+Sem as variáveis definidas a app não arranca — mostra o erro em vez de fingir
+que guardou.
 
 ## Backup
 
-- Menu **⋯ → Exportar** descarrega um `.json` de backup.
-- Menu **⋯ → Importar** carrega um `.json`.
-- Menu **⋯ → Repor original** volta ao plano de origem (`src/data.js`).
+- Menu **⋯ → Exportar** descarrega um `.json` da viagem aberta.
+- Menu **⋯ → Importar** substitui a viagem aberta pelo conteúdo de um `.json`.
 
 ## Estrutura
 
 ```
 src/
-  data.js               Itinerário inicial, hotéis e cores por dia
+  data.js               Cores por dia
   supabase.js           Cliente Supabase (ou null, se faltarem env vars)
-  storage.js            Ler/gravar na BD + exportar/importar JSON
-  App.jsx               Estado, cabeçalho, toggle Plano/Mapa, menu
+  storage.js            Listar/criar/ler/gravar viagens + exportar/importar JSON
+  App.jsx               Rota no hash (lista vs viagem), estado e cabeçalho
+  components/Trips.jsx   Página inicial: lista de viagens + criar nova
   components/Plano.jsx   Lista de dias com edição
   components/Mapa.jsx    Mapa Leaflet (marcadores, rotas, filtros)
   index.css             Tema e layout mobile (safe-area iPhone)
 ```
+
+Cada viagem tem o seu endereço: `.../#<id>`. Dá para guardar nos favoritos ou
+partilhar.

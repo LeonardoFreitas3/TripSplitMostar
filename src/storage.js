@@ -1,48 +1,43 @@
-import { INITIAL_DATA } from './data.js'
-import { supabase, TRIP_ID } from './supabase.js'
+import { supabase } from './supabase.js'
 
-const KEY = 'itinerario-split-mostar-v1'
-
-// A linha vem de uma tabela escrita com a chave anon — validar antes de confiar.
+// A linha vem de uma tabela escrita com a chave publishable — validar antes de confiar.
 function valid(d) {
-  return !!d && Array.isArray(d.days) && !!d.meta
+  return !!d && !!d.meta && Array.isArray(d.days)
 }
 
-export async function loadData() {
+function db() {
   if (!supabase) {
-    try {
-      const parsed = JSON.parse(localStorage.getItem(KEY))
-      return valid(parsed) ? parsed : structuredClone(INITIAL_DATA)
-    } catch {
-      return structuredClone(INITIAL_DATA)
-    }
+    throw new Error('Supabase não configurado: falta VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY.')
   }
-  const { data, error } = await supabase
-    .from('trips')
-    .select('data')
-    .eq('id', TRIP_ID)
-    .maybeSingle()
-  if (error) throw new Error(error.message)
-  return valid(data?.data) ? data.data : structuredClone(INITIAL_DATA)
+  return supabase.from('trips')
 }
 
-export async function saveData(data) {
-  if (!supabase) {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(data))
-    } catch {
-      // localStorage cheio ou indisponível — ignora silenciosamente.
-    }
-    return
-  }
-  const { error } = await supabase.from('trips').upsert({ id: TRIP_ID, data })
+export async function listTrips() {
+  const { data, error } = await db().select('id, data').order('updated_at', { ascending: false })
   if (error) throw new Error(error.message)
+  return (data || [])
+    .filter((r) => valid(r.data))
+    .map((r) => ({ id: r.id, meta: r.data.meta, dias: r.data.days.length }))
 }
 
-export async function resetData() {
-  const fresh = structuredClone(INITIAL_DATA)
-  await saveData(fresh)
-  return fresh
+export async function createTrip(title) {
+  const id = uid()
+  const data = { meta: { title, subtitle: '', start: '', end: '' }, days: [] }
+  const { error } = await db().insert({ id, data })
+  if (error) throw new Error(error.message)
+  return id
+}
+
+export async function loadData(id) {
+  const { data, error } = await db().select('data').eq('id', id).maybeSingle()
+  if (error) throw new Error(error.message)
+  if (!valid(data?.data)) throw new Error('Viagem não encontrada.')
+  return data.data
+}
+
+export async function saveData(id, data) {
+  const { error } = await db().upsert({ id, data, updated_at: new Date().toISOString() })
+  if (error) throw new Error(error.message)
 }
 
 // Descarrega o itinerário como ficheiro .json (backup).

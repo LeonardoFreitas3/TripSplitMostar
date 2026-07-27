@@ -4,7 +4,7 @@ import LocationPicker from './LocationPicker.jsx'
 const BASE_LABEL = { split: 'Split', mostar: 'Mostar', travel: 'Viagem' }
 
 export default function Plano({
-  data, colors, onUpdateDay, onUpdateStop, onAddStop, onRemoveStop, onMoveStop,
+  data, colors, onUpdateDay, onAddDay, onRemoveDay, onUpdateStop, onAddStop, onRemoveStop, onMoveStop,
 }) {
   return (
     <div className="plano">
@@ -15,12 +15,17 @@ export default function Plano({
           index={i}
           color={colors[i % colors.length]}
           onUpdateDay={onUpdateDay}
+          onRemoveDay={onRemoveDay}
           onUpdateStop={onUpdateStop}
           onAddStop={onAddStop}
           onRemoveStop={onRemoveStop}
           onMoveStop={onMoveStop}
         />
       ))}
+      {data.days.length === 0 && (
+        <p className="footnote">Viagem sem dias. Começa por adicionar o primeiro.</p>
+      )}
+      <button className="add-stop add-day" onClick={onAddDay}>+ Adicionar dia</button>
       <p className="footnote">
         As alterações são guardadas automaticamente na base de dados. Usa o menu (⋯) para exportar um backup.
       </p>
@@ -28,7 +33,7 @@ export default function Plano({
   )
 }
 
-function DayCard({ day, index, color, onUpdateDay, onUpdateStop, onAddStop, onRemoveStop, onMoveStop }) {
+function DayCard({ day, index, color, onUpdateDay, onRemoveDay, onUpdateStop, onAddStop, onRemoveStop, onMoveStop }) {
   const [editingDay, setEditingDay] = useState(false)
   const [openStop, setOpenStop] = useState(null)
   const dateShort = formatDate(day.date)
@@ -86,6 +91,14 @@ function DayCard({ day, index, color, onUpdateDay, onUpdateStop, onAddStop, onRe
                 }
               />
             </label>
+            <button
+              className="danger-btn"
+              onClick={() => {
+                if (confirm(`Apagar o dia "${day.title}" e as suas paragens?`)) onRemoveDay(day.id)
+              }}
+            >
+              Apagar dia
+            </button>
           </div>
         ) : (
           <>
@@ -215,6 +228,7 @@ function DayCard({ day, index, color, onUpdateDay, onUpdateStop, onAddStop, onRe
 }
 
 function formatDate(iso) {
+  if (!iso) return ''
   const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
   const [y, m, d] = iso.split('-').map(Number)
   if (!y || !m || !d) return iso

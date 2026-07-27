@@ -1,12 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
 import { DAY_COLORS } from './data.js'
-import {
-  loadData, saveData, resetData, exportData, importData, uid,
-} from './storage.js'
+import { loadData, saveData, exportData, importData, uid } from './storage.js'
 import Plano from './components/Plano.jsx'
 import Mapa from './components/Mapa.jsx'
+import Trips from './components/Trips.jsx'
 
+// Rota no hash: sem hash é a lista de viagens, #<id> abre essa viagem.
 export default function App() {
+  const [tripId, setTripId] = useState(() => location.hash.slice(1))
+
+  useEffect(() => {
+    const on = () => setTripId(location.hash.slice(1))
+    window.addEventListener('hashchange', on)
+    return () => window.removeEventListener('hashchange', on)
+  }, [])
+
+  return tripId ? <Trip key={tripId} id={tripId} /> : <Trips />
+}
+
+function Trip({ id }) {
   const [data, setData] = useState(null)
   const [erro, setErro] = useState(null)
   const [view, setView] = useState('plano') // 'plano' | 'mapa' (só quando estreito)
@@ -16,17 +28,17 @@ export default function App() {
   const wide = useWide()
 
   useEffect(() => {
-    loadData().then(setData, (e) => setErro(e.message))
-  }, [])
+    loadData(id).then(setData, (e) => setErro(e.message))
+  }, [id])
 
   // Guarda automaticamente, agrupando edições seguidas numa só escrita.
   useEffect(() => {
     if (!data) return
     const t = setTimeout(() => {
-      saveData(data).catch((e) => showToast('Não foi possível guardar: ' + e.message))
+      saveData(id, data).catch((e) => showToast('Não foi possível guardar: ' + e.message))
     }, 700)
     return () => clearTimeout(t)
-  }, [data])
+  }, [id, data])
 
   function showToast(msg) {
     setToast(msg)
@@ -40,6 +52,32 @@ export default function App() {
       ...d,
       days: d.days.map((day) => (day.id === dayId ? { ...day, ...patch } : day)),
     }))
+  }
+
+  function addDay() {
+    setData((d) => {
+      const date = nextDate(d.days[d.days.length - 1]?.date || d.meta.start)
+      return {
+        ...d,
+        days: [
+          ...d.days,
+          {
+            id: uid(),
+            date,
+            weekday: WEEKDAYS[new Date(date + 'T12:00').getDay()],
+            title: 'Novo dia',
+            base: '',
+            narrative: '',
+            hotel: null,
+            stops: [],
+          },
+        ],
+      }
+    })
+  }
+
+  function removeDay(dayId) {
+    setData((d) => ({ ...d, days: d.days.filter((day) => day.id !== dayId) }))
   }
 
   function updateStop(dayId, stopId, patch) {
@@ -88,7 +126,7 @@ export default function App() {
     }))
   }
 
-  // ---- Menu (exportar / importar / repor) ----
+  // ---- Menu (exportar / importar) ----
   function handleExport() {
     exportData(data)
     setMenuOpen(false)
@@ -113,24 +151,14 @@ export default function App() {
     }
   }
 
-  async function handleReset() {
-    if (!confirm('Repor o itinerário original? As tuas alterações serão perdidas.')) return
-    try {
-      setData(await resetData())
-      setMenuOpen(false)
-      showToast('Itinerário reposto')
-    } catch (e) {
-      showToast(e.message)
-    }
-  }
-
-  if (erro) return <div className="estado">Erro a carregar: {erro}</div>
+  if (erro) return <div className="estado">Erro a carregar: {erro} <a href="#">Voltar</a></div>
   if (!data) return <div className="estado">A carregar…</div>
 
   return (
     <div className="app">
       <header className="topbar">
         <div className="topbar-row">
+          <a className="icon-btn back" href="#" aria-label="Voltar às viagens">‹</a>
           <div className="brand">
             <h1>{data.meta.title}</h1>
             <span className="brand-sub">{data.meta.subtitle}</span>
@@ -172,7 +200,6 @@ export default function App() {
             <div className="menu" role="menu">
               <button role="menuitem" onClick={handleExport}>Exportar (.json)</button>
               <button role="menuitem" onClick={handleImportClick}>Importar (.json)</button>
-              <button role="menuitem" className="danger" onClick={handleReset}>Repor original</button>
             </div>
           </>
         )}
@@ -191,6 +218,8 @@ export default function App() {
             data={data}
             colors={DAY_COLORS}
             onUpdateDay={updateDay}
+            onAddDay={addDay}
+            onRemoveDay={removeDay}
             onUpdateStop={updateStop}
             onAddStop={addStop}
             onRemoveStop={removeStop}
@@ -203,6 +232,16 @@ export default function App() {
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   )
+}
+
+const WEEKDAYS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
+
+// Dia seguinte ao último (ou hoje, se a viagem ainda não tem datas).
+function nextDate(prev) {
+  const d = prev ? new Date(prev + 'T12:00') : new Date()
+  if (prev) d.setDate(d.getDate() + 1)
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  return `${d.getFullYear()}-${mm}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 // No PC mostra plano e mapa lado a lado; no telemóvel mantém os separadores.

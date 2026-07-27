@@ -570,6 +570,41 @@ input, textarea { font-family: inherit; }
   to { opacity: 1; transform: translate(-50%, 0); }
 }
 
+/* ---------- Lista de viagens ---------- */
+.trips {
+  flex: 1;
+  overflow-y: auto;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 18px 16px calc(env(safe-area-inset-bottom) + 28px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.trip-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 16px 18px;
+  background: var(--paper);
+  border: 1px solid var(--hair);
+  border-radius: 14px;
+  text-decoration: none;
+  color: inherit;
+}
+.trip-card:active { background: var(--limestone-2); }
+.trip-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--ink);
+}
+.trip-meta { font-size: 13px; color: var(--muted); }
+
+.icon-btn.back { text-decoration: none; font-size: 26px; }
+.add-day { margin-top: 4px; }
+
 /* ---------- Estado (carregar / erro) ---------- */
 .estado {
   display: grid;
