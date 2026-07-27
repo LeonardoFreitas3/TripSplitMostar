@@ -7,7 +7,8 @@ export default function Mapa({ data, colors }) {
   const mapEl = useRef(null)
   const mapRef = useRef(null)
   const layerRef = useRef(null)
-  const [visible, setVisible] = useState(() => new Set(data.days.map((d) => d.id)))
+  // null = todos os dias. Carregar num dia isola-o; carregar outra vez volta a todos.
+  const [only, setOnly] = useState(null)
 
   const dayColor = useMemo(() => {
     const m = {}
@@ -52,7 +53,7 @@ export default function Mapa({ data, colors }) {
     const hotelsSeen = new Set()
 
     data.days.forEach((day) => {
-      if (!visible.has(day.id)) return
+      if (only && day.id !== only) return
       const color = dayColor[day.id]
       const dayNum = data.days.indexOf(day) + 1
       const pts = []
@@ -97,34 +98,23 @@ export default function Mapa({ data, colors }) {
     } else if (allPts.length > 1) {
       map.fitBounds(L.latLngBounds(allPts), { padding: [40, 40] })
     }
-  }, [data, visible, dayColor])
-
-  function toggleDay(id) {
-    setVisible((prev) => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }
+  }, [data, only, dayColor])
 
   return (
     <div className="mapa">
       <div className="chips" role="group" aria-label="Filtrar dias">
-        {data.days.map((day, i) => {
-          const on = visible.has(day.id)
-          return (
-            <button
-              key={day.id}
-              className={on ? 'chip on' : 'chip'}
-              style={{ '--chip-color': colors[i % colors.length] }}
-              onClick={() => toggleDay(day.id)}
-              aria-pressed={on}
-            >
-              <span className="chip-dot" />
-              D{i + 1}
-            </button>
-          )
-        })}
+        {data.days.map((day, i) => (
+          <button
+            key={day.id}
+            className={!only || only === day.id ? 'chip on' : 'chip'}
+            style={{ '--chip-color': colors[i % colors.length] }}
+            onClick={() => setOnly((o) => (o === day.id ? null : day.id))}
+            aria-pressed={only === day.id}
+          >
+            <span className="chip-dot" />
+            D{i + 1}
+          </button>
+        ))}
       </div>
       <div ref={mapEl} className="map-canvas" />
     </div>

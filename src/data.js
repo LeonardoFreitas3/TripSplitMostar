@@ -1,5 +1,5 @@
 // Itinerário inicial. É só o ponto de partida: assim que editas algo na app,
-// passa a ser guardado no telemóvel (localStorage). Para repor isto, usa "Repor".
+// passa a ser guardado na base de dados. Para repor isto, usa "Repor original".
 
 export const HOTELS = {
   split: { name: 'Bel Etage Luxury Rooms', lat: 43.5037643, lng: 16.4962506 },
@@ -51,15 +51,20 @@ export const INITIAL_DATA = {
       id: 'd2',
       date: '2026-08-06',
       weekday: 'Quinta',
-      title: 'Gruta Azul + ilhas',
+      title: 'Trogir + Krka',
       base: 'split',
-      narrative: 'Dia inteiro de barco. Partir cedo é essencial para evitar filas na gruta. Reservar com antecedência (Jul–Ago esgota) e levar dinheiro para a entrada (~€12–24). Depende do mar; se houver ondulação, trocar com o dia de Krka.',
+      narrative: '* Compras supermecado;\n* Trogir;\n* Cascatas Krak',
       hotel: { ...HOTELS.split },
       stops: [
         {
-          id: 's3', name: 'Partida do tour — Riva', time: '07:00', durationMin: 660,
-          lat: 43.5077507, lng: 16.4384962,
-          notes: 'Lancha: ~1h30 até Biševo, gruta + Vis/Hvar/Pakleni. Regresso ~18:00. Não se nada dentro da gruta.',
+          id: 's3', name: 'Trogir', time: '11:00', durationMin: null,
+          lat: 43.5330035, lng: 16.2578229,
+          notes: '.......\n + almoço volante',
+        },
+        {
+          id: 'xz61fx9z', name: 'Cascatas Krak', time: '15:00', durationMin: 0,
+          lat: 43.79535, lng: 15.96854,
+          notes: '*Entrada a pé Lozovac - Buffet Krak',
         },
       ],
     },
@@ -67,20 +72,25 @@ export const INITIAL_DATA = {
       id: 'd3',
       date: '2026-08-07',
       weekday: 'Sexta',
-      title: 'Parque Nacional de Krka',
+      title: 'Game of Thrones + Piscina Hotel + Marjan viewpoint',
       base: 'split',
-      narrative: 'Sair cedo de Split (~1h15 de carro). Comprar bilhete online e entrar à abertura (8h) para evitar os autocarros de grupos.',
+      narrative: '',
       hotel: { ...HOTELS.split },
       stops: [
         {
-          id: 's4', name: 'Krka — entrada Lozovac', time: '08:00', durationMin: 240,
-          lat: 43.8666017, lng: 15.9724838,
-          notes: 'Entrada para quem vem de carro. Shuttle gratuito até Skradinski Buk. Sem banhos na cascata principal (proibido desde 2021).',
+          id: 's4', name: 'Game of Thrones Museum', time: '11:00', durationMin: 100,
+          lat: 43.5043408, lng: 16.2624031,
+          notes: '* Visita guiada às 11h ao museu de Game of Thrones\n* Visita guiada + história de Split',
         },
         {
-          id: 's5', name: 'Trogir (regresso)', time: '14:00', durationMin: 120,
-          lat: 43.5175453, lng: 16.2504585,
-          notes: 'Paragem opcional no caminho de volta — cidade UNESCO pequena e bonita para almoçar.',
+          id: 's5', name: 'Piscina Hotel', time: '15:00', durationMin: null,
+          lat: null, lng: null,
+          notes: '',
+        },
+        {
+          id: 'xjnejlxd', name: 'Marjan Viewpoint', time: '19:00', durationMin: 60,
+          lat: 43.5111658, lng: 16.4385556,
+          notes: '',
         },
       ],
     },
@@ -90,18 +100,18 @@ export const INITIAL_DATA = {
       weekday: 'Sábado',
       title: 'Split o dia todo → Mostar à noite',
       base: 'mostar',
-      narrative: 'Aproveitar Split o dia inteiro e seguir para Mostar só ao final da tarde. Partir por volta das 17:30–18:00: ~2h30 de carro + fronteira, chegada a Mostar à noite para ver o Stari Most iluminado e jantar. Levar passaporte e autorização da rentadora para sair da Croácia; ao fim de tarde de sábado a fronteira pode ter fila.',
+      narrative: '',
       hotel: { ...HOTELS.mostar },
       stops: [
         {
-          id: 's6', name: 'Fortaleza de Klis', time: '09:30', durationMin: 150,
-          lat: 43.5596454, lng: 16.5226633,
-          notes: 'Fortaleza com vistas sobre Split (cenário de Game of Thrones). Abre às 8:30 — ir de manhã antes do calor. ~25 min de carro.',
+          id: 's13', name: 'Praia de Kasjuni', time: '10:00', durationMin: 240,
+          lat: 43.5023529, lng: 16.4467679,
+          notes: '',
         },
         {
-          id: 's13', name: 'Praia de Bačvice', time: '13:00', durationMin: 240,
-          lat: 43.5023529, lng: 16.4467679,
-          notes: 'Praia de areia no centro, com bar e chuveiros. Almoço e banhos na parte mais quente do dia.',
+          id: 'xhv8n1xh', name: 'Viagem até Mostar', time: '17:00', durationMin: 150,
+          lat: null, lng: null,
+          notes: '',
         },
         {
           id: 's7', name: 'Stari Most (Ponte Velha)', time: '20:30', durationMin: 120,
