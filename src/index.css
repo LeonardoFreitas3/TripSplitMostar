@@ -582,7 +582,21 @@ input, textarea { font-family: inherit; }
   flex-direction: column;
   gap: 10px;
 }
+.trip-row { display: flex; gap: 8px; }
+.trip-del {
+  flex: none;
+  width: 46px;
+  border: 1px solid var(--hair);
+  border-radius: 14px;
+  background: var(--paper);
+  color: var(--danger);
+  font-size: 15px;
+}
+.trip-del:active { background: var(--limestone-2); }
+
 .trip-card {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 5px;

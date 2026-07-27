@@ -28,6 +28,11 @@ export async function createTrip(title) {
   return id
 }
 
+export async function deleteTrip(id) {
+  const { error } = await db().delete().eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
 export async function loadData(id) {
   const { data, error } = await db().select('data').eq('id', id).maybeSingle()
   if (error) throw new Error(error.message)
