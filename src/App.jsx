@@ -7,15 +7,25 @@ import Plano from './components/Plano.jsx'
 import Mapa from './components/Mapa.jsx'
 
 export default function App() {
-  const [data, setData] = useState(loadData)
-  const [view, setView] = useState('plano') // 'plano' | 'mapa'
+  const [data, setData] = useState(null)
+  const [erro, setErro] = useState(null)
+  const [view, setView] = useState('plano') // 'plano' | 'mapa' (só quando estreito)
   const [menuOpen, setMenuOpen] = useState(false)
   const [toast, setToast] = useState(null)
   const fileRef = useRef(null)
+  const wide = useWide()
 
-  // Guarda automaticamente sempre que algo muda.
   useEffect(() => {
-    saveData(data)
+    loadData().then(setData, (e) => setErro(e.message))
+  }, [])
+
+  // Guarda automaticamente, agrupando edições seguidas numa só escrita.
+  useEffect(() => {
+    if (!data) return
+    const t = setTimeout(() => {
+      saveData(data).catch((e) => showToast('Não foi possível guardar: ' + e.message))
+    }, 700)
+    return () => clearTimeout(t)
   }, [data])
 
   function showToast(msg) {
@@ -103,13 +113,19 @@ export default function App() {
     }
   }
 
-  function handleReset() {
-    if (confirm('Repor o itinerário original? As tuas alterações serão perdidas.')) {
-      setData(resetData())
+  async function handleReset() {
+    if (!confirm('Repor o itinerário original? As tuas alterações serão perdidas.')) return
+    try {
+      setData(await resetData())
       setMenuOpen(false)
       showToast('Itinerário reposto')
+    } catch (e) {
+      showToast(e.message)
     }
   }
+
+  if (erro) return <div className="estado">Erro a carregar: {erro}</div>
+  if (!data) return <div className="estado">A carregar…</div>
 
   return (
     <div className="app">
@@ -129,24 +145,26 @@ export default function App() {
           </button>
         </div>
 
-        <div className="segmented" role="tablist" aria-label="Vista">
-          <button
-            role="tab"
-            aria-selected={view === 'plano'}
-            className={view === 'plano' ? 'seg active' : 'seg'}
-            onClick={() => setView('plano')}
-          >
-            Plano
-          </button>
-          <button
-            role="tab"
-            aria-selected={view === 'mapa'}
-            className={view === 'mapa' ? 'seg active' : 'seg'}
-            onClick={() => setView('mapa')}
-          >
-            Mapa
-          </button>
-        </div>
+        {!wide && (
+          <div className="segmented" role="tablist" aria-label="Vista">
+            <button
+              role="tab"
+              aria-selected={view === 'plano'}
+              className={view === 'plano' ? 'seg active' : 'seg'}
+              onClick={() => setView('plano')}
+            >
+              Plano
+            </button>
+            <button
+              role="tab"
+              aria-selected={view === 'mapa'}
+              className={view === 'mapa' ? 'seg active' : 'seg'}
+              onClick={() => setView('mapa')}
+            >
+              Mapa
+            </button>
+          </div>
+        )}
 
         {menuOpen && (
           <>
@@ -168,7 +186,7 @@ export default function App() {
       </header>
 
       <main className="content">
-        {view === 'plano' ? (
+        {(wide || view === 'plano') && (
           <Plano
             data={data}
             colors={DAY_COLORS}
@@ -178,12 +196,24 @@ export default function App() {
             onRemoveStop={removeStop}
             onMoveStop={moveStop}
           />
-        ) : (
-          <Mapa data={data} colors={DAY_COLORS} />
         )}
+        {(wide || view === 'mapa') && <Mapa data={data} colors={DAY_COLORS} />}
       </main>
 
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   )
+}
+
+// No PC mostra plano e mapa lado a lado; no telemóvel mantém os separadores.
+function useWide() {
+  const mq = () => window.matchMedia('(min-width: 1000px)')
+  const [wide, setWide] = useState(() => mq().matches)
+  useEffect(() => {
+    const m = mq()
+    const on = (e) => setWide(e.matches)
+    m.addEventListener('change', on)
+    return () => m.removeEventListener('change', on)
+  }, [])
+  return wide
 }

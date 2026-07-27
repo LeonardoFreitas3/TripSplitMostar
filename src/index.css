@@ -570,6 +570,26 @@ input, textarea { font-family: inherit; }
   to { opacity: 1; transform: translate(-50%, 0); }
 }
 
+/* ---------- Estado (carregar / erro) ---------- */
+.estado {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+/* ---------- PC: plano e mapa lado a lado ---------- */
+@media (min-width: 1000px) {
+  .app { max-width: 1500px; }
+  .content { flex-direction: row; }
+  .plano {
+    flex: 0 0 clamp(340px, 30%, 440px);
+    border-right: 1px solid var(--hair);
+  }
+  .mapa { flex: 1; min-width: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }

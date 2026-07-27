@@ -1,37 +1,51 @@
 import { INITIAL_DATA } from './data.js'
+import { supabase, TRIP_ID } from './supabase.js'
 
 const KEY = 'itinerario-split-mostar-v1'
 
-export function loadData() {
-  try {
-    const raw = localStorage.getItem(KEY)
-    if (!raw) return structuredClone(INITIAL_DATA)
-    const parsed = JSON.parse(raw)
-    if (!parsed || !Array.isArray(parsed.days)) return structuredClone(INITIAL_DATA)
-    return parsed
-  } catch {
-    return structuredClone(INITIAL_DATA)
-  }
+// A linha vem de uma tabela escrita com a chave anon — validar antes de confiar.
+function valid(d) {
+  return !!d && Array.isArray(d.days) && !!d.meta
 }
 
-export function saveData(data) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(data))
-  } catch {
-    // localStorage cheio ou indisponível — ignora silenciosamente.
+export async function loadData() {
+  if (!supabase) {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(KEY))
+      return valid(parsed) ? parsed : structuredClone(INITIAL_DATA)
+    } catch {
+      return structuredClone(INITIAL_DATA)
+    }
   }
+  const { data, error } = await supabase
+    .from('trips')
+    .select('data')
+    .eq('id', TRIP_ID)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  return valid(data?.data) ? data.data : structuredClone(INITIAL_DATA)
 }
 
-export function resetData() {
-  try {
-    localStorage.removeItem(KEY)
-  } catch {
-    /* noop */
+export async function saveData(data) {
+  if (!supabase) {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(data))
+    } catch {
+      // localStorage cheio ou indisponível — ignora silenciosamente.
+    }
+    return
   }
-  return structuredClone(INITIAL_DATA)
+  const { error } = await supabase.from('trips').upsert({ id: TRIP_ID, data })
+  if (error) throw new Error(error.message)
 }
 
-// Descarrega o itinerário como ficheiro .json (backup / passar para outro telemóvel).
+export async function resetData() {
+  const fresh = structuredClone(INITIAL_DATA)
+  await saveData(fresh)
+  return fresh
+}
+
+// Descarrega o itinerário como ficheiro .json (backup).
 export function exportData(data) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
@@ -51,7 +65,7 @@ export function importData(file) {
     reader.onload = () => {
       try {
         const parsed = JSON.parse(reader.result)
-        if (!parsed || !Array.isArray(parsed.days)) {
+        if (!valid(parsed)) {
           reject(new Error('Ficheiro inválido: não tem dias.'))
           return
         }

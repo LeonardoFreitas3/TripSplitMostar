@@ -3,7 +3,8 @@
 App de itinerário (React + Vite + Leaflet), pensada para usar no telemóvel.
 Mostra o plano dia-a-dia e um mapa com marcadores e rotas por dia. Permite
 editar tudo (paragens, horas, notas, coordenadas, hotéis) e guarda as
-alterações no próprio telemóvel.
+alterações no Supabase. No telemóvel alterna entre Plano e Mapa; no PC ficam
+lado a lado, com o mapa a ocupar a maior parte do ecrã.
 
 ## Correr localmente
 
@@ -38,23 +39,50 @@ Pages sem configuração extra.
 No Safari, abre o site → botão Partilhar → **Adicionar ao ecrã principal**.
 Fica em ecrã inteiro, como uma app.
 
-## Dados e backup
+## Base de dados (Supabase)
 
-- As edições são guardadas no `localStorage` do telemóvel (sem servidor).
+No SQL Editor do Supabase:
+
+```sql
+create table trips (
+  id text primary key,
+  data jsonb not null,
+  updated_at timestamptz default now()
+);
+
+alter table trips enable row level security;
+
+-- Sem login: qualquer pessoa com o URL da app pode ler e editar o itinerário.
+create policy "acesso publico" on trips for all using (true) with check (true);
+
+insert into trips (id, data) values ('split-mostar', '{}'::jsonb);
+```
+
+Depois copia `.env.example` para `.env` e preenche com o **Project URL** e a
+**anon key** (Settings → API). Para o GitHub Pages, mete os mesmos dois valores
+em **Settings → Secrets and variables → Actions**, com os mesmos nomes.
+
+> A chave anon vai no bundle e a policy acima é aberta: quem souber o endereço
+> da app pode editar o itinerário. Para uma viagem entre amigos chega; se
+> quiseres travar, ativa Auth no Supabase e troca a policy por `auth.uid() is
+> not null`.
+
+Sem as variáveis definidas, a app volta a guardar em `localStorage` — dá para
+desenvolver localmente sem Supabase nenhum.
+
+## Backup
+
 - Menu **⋯ → Exportar** descarrega um `.json` de backup.
-- Menu **⋯ → Importar** carrega um `.json` (também serve para passar o
-  itinerário para outro dispositivo).
+- Menu **⋯ → Importar** carrega um `.json`.
 - Menu **⋯ → Repor original** volta ao plano de origem (`src/data.js`).
-
-> Nota: o `localStorage` é por navegador/dispositivo. Para sincronizar entre o
-> iPhone e outro aparelho, usa Exportar/Importar.
 
 ## Estrutura
 
 ```
 src/
   data.js               Itinerário inicial, hotéis e cores por dia
-  storage.js            localStorage + exportar/importar JSON
+  supabase.js           Cliente Supabase (ou null, se faltarem env vars)
+  storage.js            Ler/gravar na BD + exportar/importar JSON
   App.jsx               Estado, cabeçalho, toggle Plano/Mapa, menu
   components/Plano.jsx   Lista de dias com edição
   components/Mapa.jsx    Mapa Leaflet (marcadores, rotas, filtros)

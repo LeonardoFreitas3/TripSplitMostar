@@ -22,7 +22,7 @@ export default function Plano({
         />
       ))}
       <p className="footnote">
-        As alterações são guardadas automaticamente neste telemóvel. Usa o menu (⋯) para exportar um backup.
+        As alterações são guardadas automaticamente na base de dados. Usa o menu (⋯) para exportar um backup.
       </p>
     </div>
   )
