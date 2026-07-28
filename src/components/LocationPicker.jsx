@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { findPhoto, photoUrl, mapsUrl, hasPlaces } from '../places.js'
+import { findPhoto, photoForWikidata, photoUrl, mapsUrl } from '../places.js'
 
 // Extrai coordenadas de uma colagem: "43.5, 16.4", um link do Google Maps
 // com @lat,lng, ou o formato !3dLAT!4dLNG. Devolve {lat,lng} ou null.
@@ -27,10 +27,11 @@ export default function LocationPicker({ name, lat, lng, photo, onPick, onClear 
   const [foto, setFoto] = useState('idle') // idle | loading | empty | error
   const hasCoords = typeof lat === 'number' && typeof lng === 'number'
 
-  async function procurarFoto(nome, la, ln) {
+  // `buscar` devolve o nome do ficheiro, ou null. Só muda a origem do id.
+  async function guardarFoto(buscar) {
     setFoto('loading')
     try {
-      const p = await findPhoto(nome, la, ln)
+      const p = await buscar()
       onPick({ photo: p })
       setFoto(p ? 'idle' : 'empty')
     } catch {
@@ -56,8 +57,10 @@ export default function LocationPicker({ name, lat, lng, photo, onPick, onClear 
     setStatus('loading')
     setResults([])
     try {
+      // extratags=1 traz o id do Wikidata já nesta resposta, o que poupa um
+      // pedido ao Nominatim quando se escolhe um resultado.
       const url =
-        'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&q=' +
+        'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&extratags=1&q=' +
         encodeURIComponent(text)
       const res = await fetch(url, { headers: { Accept: 'application/json' } })
       if (!res.ok) throw new Error('http')
@@ -82,7 +85,7 @@ export default function LocationPicker({ name, lat, lng, photo, onPick, onClear 
     setStatus('idle')
     setQ('')
     // A foto vem logo a seguir, para não obrigar a um segundo clique.
-    if (hasPlaces) procurarFoto(escolhido, la, ln)
+    guardarFoto(() => photoForWikidata(r.extratags?.wikidata))
   }
 
   return (
@@ -104,28 +107,28 @@ export default function LocationPicker({ name, lat, lng, photo, onPick, onClear 
             </button>
           </div>
 
-          {hasPlaces && (
-            <div className="loc-foto">
-              {photo && <img src={photoUrl(photo, 200)} alt="" loading="lazy" />}
-              <div className="loc-foto-acoes">
-                <button
-                  type="button"
-                  className="link-btn"
-                  onClick={() => procurarFoto(name, lat, lng)}
-                  disabled={foto === 'loading'}
-                >
-                  {foto === 'loading' ? 'A procurar…' : photo ? 'Trocar foto' : 'Procurar foto'}
+          <div className="loc-foto">
+            {photo && <img src={photoUrl(photo, 200)} alt="" loading="lazy" />}
+            <div className="loc-foto-acoes">
+              <button
+                type="button"
+                className="link-btn"
+                onClick={() => guardarFoto(() => findPhoto(name))}
+                disabled={foto === 'loading'}
+              >
+                {foto === 'loading' ? 'A procurar…' : photo ? 'Trocar foto' : 'Procurar foto'}
+              </button>
+              {photo && (
+                <button type="button" className="loc-clear" onClick={() => onPick({ photo: null })}>
+                  remover foto
                 </button>
-                {photo && (
-                  <button type="button" className="loc-clear" onClick={() => onPick({ photo: null })}>
-                    remover foto
-                  </button>
-                )}
-              </div>
-              {foto === 'empty' && <p className="hint">O Google não tem fotos deste sítio.</p>}
-              {foto === 'error' && <p className="hint">Falhou a procura de foto. Vê a chave da Places API.</p>}
+              )}
             </div>
-          )}
+            {foto === 'empty' && (
+              <p className="hint">Sem foto no Wikidata para este sítio. Sítios conhecidos costumam ter; praias e restaurantes muitas vezes não.</p>
+            )}
+            {foto === 'error' && <p className="hint">Falhou a procura de foto. Tenta outra vez.</p>}
+          </div>
         </>
       )}
 

@@ -1,38 +1,38 @@
-// Google Places API (New) — a versão antiga não serve, não tem CORS e as
-// chamadas do browser são bloqueadas.
+// Fotos das paragens sem chave nem faturação: OpenStreetMap → Wikidata →
+// Wikimedia Commons.
 //
-// A chave fica no bundle, como todas as VITE_*. Restringe-a na consola do
-// Google Cloud (referrer HTTP + só a Places API), senão qualquer pessoa que
-// abra o site a pode usar à tua custa.
-const KEY = import.meta.env.VITE_GOOGLE_PLACES_KEY
+// A pesquisa do Nominatim que já fazíamos traz, com extratags=1, o id do
+// Wikidata do sítio. O Wikidata diz qual é a imagem oficial (propriedade
+// P18), e o Commons serve-a pelo nome do ficheiro. Tudo público.
 
-export const hasPlaces = !!KEY
+// O parâmetro origin=* é o que faz a API do Wikidata devolver os cabeçalhos
+// de CORS. Sem ele o browser bloqueia o pedido.
+const WIKIDATA = 'https://www.wikidata.org/w/api.php?origin=*&format=json&action=wbgetentities&props=claims&ids='
 
-// Procura o sítio pelo nome, enviesado para as coordenadas da paragem, e
-// devolve o nome do recurso da primeira foto (ou null se não houver).
-export async function findPhoto(name, lat, lng) {
-  if (!KEY || !name?.trim()) return null
-  const body = { textQuery: name.trim(), maxResultCount: 1 }
-  if (typeof lat === 'number' && typeof lng === 'number') {
-    body.locationBias = { circle: { center: { latitude: lat, longitude: lng }, radius: 500 } }
-  }
-  const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Goog-Api-Key': KEY,
-      'X-Goog-FieldMask': 'places.photos',
-    },
-    body: JSON.stringify(body),
-  })
-  if (!res.ok) throw new Error(`Places respondeu ${res.status}`)
+// Nome do ficheiro da imagem de um id do Wikidata (ou null se não tiver).
+export async function photoForWikidata(id) {
+  if (!id) return null
+  const res = await fetch(WIKIDATA + encodeURIComponent(id))
+  if (!res.ok) throw new Error(`Wikidata respondeu ${res.status}`)
   const data = await res.json()
-  return data.places?.[0]?.photos?.[0]?.name || null
+  return data.entities?.[id]?.claims?.P18?.[0]?.mainsnak?.datavalue?.value || null
 }
 
-// O endpoint devolve um redirect para a imagem, por isso serve num <img src>.
-export function photoUrl(photo, px = 400) {
-  return `https://places.googleapis.com/v1/${photo}/media?maxHeightPx=${px}&key=${KEY}`
+// Para paragens que já têm localização mas nunca passaram pela pesquisa:
+// procura o sítio pelo nome e segue o mesmo caminho.
+export async function findPhoto(name) {
+  if (!name?.trim()) return null
+  const url =
+    'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&extratags=1&q=' +
+    encodeURIComponent(name.trim())
+  const res = await fetch(url, { headers: { Accept: 'application/json' } })
+  if (!res.ok) throw new Error(`Nominatim respondeu ${res.status}`)
+  const data = await res.json()
+  return photoForWikidata(data[0]?.extratags?.wikidata)
+}
+
+export function photoUrl(file, px = 400) {
+  return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=${px}`
 }
 
 // Link para o Google Maps. Não precisa de chave nenhuma.
