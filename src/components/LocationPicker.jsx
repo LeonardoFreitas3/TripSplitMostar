@@ -43,13 +43,16 @@ export default function LocationPicker({ name, lat, lng, photo, onPick, onClear 
     const text = q.trim()
     if (!text) return
 
-    // 1) Coordenadas ou link colado — resolve sem rede.
+    // 1) Coordenadas ou link colado — resolve sem rede. Aqui não há id do
+    // Wikidata para aproveitar, por isso a foto procura-se pelo nome da
+    // paragem, como faz o botão.
     const direct = parseCoords(text)
     if (direct) {
       onPick(direct)
       setResults([])
       setStatus('idle')
       setQ('')
+      guardarFoto(() => findPhoto(name, direct.lat, direct.lng))
       return
     }
 
@@ -113,7 +116,7 @@ export default function LocationPicker({ name, lat, lng, photo, onPick, onClear 
               <button
                 type="button"
                 className="link-btn"
-                onClick={() => guardarFoto(() => findPhoto(name))}
+                onClick={() => guardarFoto(() => findPhoto(name, lat, lng))}
                 disabled={foto === 'loading'}
               >
                 {foto === 'loading' ? 'A procurar…' : photo ? 'Trocar foto' : 'Procurar foto'}

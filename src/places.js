@@ -18,13 +18,25 @@ export async function photoForWikidata(id) {
   return data.entities?.[id]?.claims?.P18?.[0]?.mainsnak?.datavalue?.value || null
 }
 
-// Para paragens que já têm localização mas nunca passaram pela pesquisa:
-// procura o sítio pelo nome e segue o mesmo caminho.
-export async function findPhoto(name) {
-  if (!name?.trim()) return null
-  const url =
+// Os nomes das paragens são texto livre — "Salona (Solin) - ruínas romanas",
+// "Krka - entrada Lozovac". Fica só o primeiro pedaço, que costuma ser o nome
+// do sítio; o resto é anotação e só atrapalha a pesquisa.
+function nomeDoSitio(n) {
+  return (n || '').split(/[-–—+(,/]/)[0].trim()
+}
+
+// Para paragens que já têm localização mas nunca passaram pela pesquisa.
+export async function findPhoto(name, lat, lng) {
+  const q = nomeDoSitio(name)
+  if (!q) return null
+  let url =
     'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&extratags=1&q=' +
-    encodeURIComponent(name.trim())
+    encodeURIComponent(q)
+  // Com coordenadas, limita a procura à zona da paragem: impede que "Krka"
+  // ou "Salona" venham parar a outro país.
+  if (typeof lat === 'number' && typeof lng === 'number') {
+    url += `&bounded=1&viewbox=${lng - 0.4},${lat + 0.4},${lng + 0.4},${lat - 0.4}`
+  }
   const res = await fetch(url, { headers: { Accept: 'application/json' } })
   if (!res.ok) throw new Error(`Nominatim respondeu ${res.status}`)
   const data = await res.json()
