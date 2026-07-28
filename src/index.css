@@ -722,10 +722,35 @@ input, textarea { font-family: inherit; }
 .leaflet-container { font-family: var(--body); }
 .pop-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
 .pop-notes { font-size: 12.5px; color: var(--ink-soft); margin-top: 7px; line-height: 1.5; }
+.pop-fotos { position: relative; margin-top: 9px; }
+.pop-seta {
+  display: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--hair);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1;
+  box-shadow: 0 1px 5px rgba(28, 27, 25, 0.25);
+  transition: background var(--t);
+}
+.pop-seta.esq { left: 6px; }
+.pop-seta.dir { right: 6px; }
+/* Só onde há rato. No telemóvel arrasta-se com o dedo e as setas estorvavam. */
+@media (hover: hover) {
+  .pop-seta { display: grid; place-items: center; }
+  .pop-seta:hover { background: var(--surface-2); }
+}
+
 .pop-galeria {
   display: flex;
   gap: 6px;
-  margin-top: 9px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;

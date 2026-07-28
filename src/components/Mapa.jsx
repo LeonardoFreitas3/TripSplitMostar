@@ -9,8 +9,22 @@ function galeria(refs) {
   const imgs = refs
     .map((r, i) => `<img src="${escapeHtml(photoSrc(r, 400))}" alt=""${i ? ' loading="lazy"' : ''}>`)
     .join('')
-  return `<div class="pop-galeria">${imgs}</div>`
+  const setas =
+    refs.length > 1
+      ? `<button class="pop-seta esq" data-dir="-1" aria-label="Fotos anteriores">‹</button>` +
+        `<button class="pop-seta dir" data-dir="1" aria-label="Fotos seguintes">›</button>`
+      : ''
+  return `<div class="pop-fotos"><div class="pop-galeria">${imgs}</div>${setas}</div>`
 }
+
+// Um só ouvinte para todas as setas: o popup é HTML solto, não há onde pendurar
+// um handler por botão.
+document.addEventListener('click', (e) => {
+  const seta = e.target.closest?.('.pop-seta')
+  if (!seta) return
+  const g = seta.parentElement.querySelector('.pop-galeria')
+  g.scrollBy({ left: Number(seta.dataset.dir) * g.clientWidth, behavior: 'smooth' })
+})
 
 // O conteúdo é montado aqui porque o popup tem de ser reconstruído quando as
 // fotos chegam: mexer no DOM à mão não serve, o Leaflet reescreve o popup a
