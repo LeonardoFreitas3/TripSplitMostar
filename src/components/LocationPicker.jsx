@@ -5,8 +5,10 @@ import { mapsUrl } from '../places.js'
 // com @lat,lng, ou o formato !3dLAT!4dLNG. Devolve {lat,lng} ou null.
 function parseCoords(text) {
   const candidates = [
-    /@(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/, // .../@43.50,16.44,15z
+    // Primeiro o sítio em si. O @ vem depois porque é o centro do mapa, que
+    // pode estar a dezenas de metros do local e trazer as fotos do vizinho.
     /!3d(-?\d{1,3}\.\d+)!4d(-?\d{1,3}\.\d+)/, // ...!3d43.50!4d16.44
+    /@(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/, // .../@43.50,16.44,15z
     /(-?\d{1,3}\.\d+)[ ,]+(-?\d{1,3}\.\d+)/, // 43.50, 16.44
   ]
   for (const re of candidates) {
@@ -38,6 +40,13 @@ export default function LocationPicker({ lat, lng, onPick, onClear }) {
       setResults([])
       setStatus('idle')
       setQ('')
+      return
+    }
+
+    // Links curtos do Maps não trazem coordenadas, e segui-los até ao destino
+    // exigia um pedido que o browser bloqueia. Mais vale dizê-lo.
+    if (/(maps\.app\.goo\.gl|goo\.gl\/maps)/.test(text)) {
+      setStatus('curto')
       return
     }
 
@@ -110,6 +119,12 @@ export default function LocationPicker({ lat, lng, onPick, onClear }) {
         </button>
       </div>
 
+      {status === 'curto' && (
+        <p className="hint">
+          Este link curto não traz coordenadas. Abre-o no browser e cola o endereço a que ele
+          chega — o que tem <code>/maps/place/</code> no meio.
+        </p>
+      )}
       {status === 'empty' && <p className="hint">Sem resultados. Tenta outro nome.</p>}
       {status === 'error' && (
         <p className="hint">Sem ligação ou limite atingido. Tenta de novo, ou cola as coordenadas.</p>
