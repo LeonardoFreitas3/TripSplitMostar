@@ -92,21 +92,38 @@ que guardou.
 
 ## Fotos das paragens
 
-O popup de cada paragem no mapa mostra uma foto do sítio. Não é preciso
-configurar nada: sem chaves, sem faturação, sem conta.
+Ao abrir um ponto no mapa, aparece por baixo da descrição uma galeria com até
+10 fotos do sítio, que se arrasta para o lado. Nada fica guardado na viagem:
+procura-se ao abrir o popup e fica em memória até se recarregar a página. Por
+isso uma paragem nova mostra fotos sem se lhe tocar.
 
-O caminho é OpenStreetMap → Wikidata → Wikimedia Commons. A pesquisa do
-Nominatim já traz o id do Wikidata (`extratags=1`); o Wikidata diz qual é a
-imagem oficial do sítio (propriedade P18); o Commons serve-a. O nome do
-ficheiro fica guardado na paragem, portanto abrir o mapa não repete a procura.
+**Com `VITE_GOOGLE_PLACES_KEY`** usa a Places API (New), procurando pelo lugar
+que está nas coordenadas do pin (raio de 80 m). Cobre quase tudo: restaurantes,
+hotéis, praias.
 
-Nem todo o sítio tem imagem no Wikidata — monumentos e cidades quase sempre
-têm, praias e restaurantes muitas vezes não. Quando não há, o popup mostra só
-o texto. Para as paragens que já tinham localização, há um botão **Procurar
-foto** no editor.
+1. [Google Cloud Console](https://console.cloud.google.com/) → projeto novo e
+   **ativa a faturação** (a Places API não funciona sem isso).
+2. Ativa a **Places API (New)**. A antiga não serve, não tem CORS.
+3. Cria a chave e **restringe-a**: *Websites* com
+   `https://<utilizador>.github.io/*` e `http://localhost:5173/*`, e
+   *API restrictions* só à Places API (New).
+4. Põe a chave no `.env` e nos secrets do GitHub.
+5. **Billing → Budgets & alerts**: põe um alerta baixo.
 
-O link **Abrir no Google Maps** usa só as coordenadas, também não precisa de
-chave.
+> O login da app **não** protege esta chave: o ficheiro JavaScript é servido
+> publicamente pelo GitHub Pages e qualquer pessoa o descarrega sem entrar. A
+> restrição por website é a única defesa.
+
+Custos: uma pesquisa por popup aberto (Nearby Search Pro, 5.000 grátis/mês) e
+um pedido por foto **efetivamente vista** (Place Photo, 1.000 grátis/mês). Só
+a primeira imagem da galeria carrega de imediato; as outras esperam que se
+arraste até elas, para não gastar 10 pedidos de cada vez que se abre um ponto.
+
+**Sem chave** cai no Wikidata (OpenStreetMap → Wikidata P18 → Wikimedia
+Commons): grátis e sem conta, mas só uma foto e só de sítios conhecidos. No
+itinerário de exemplo acertava em 12 de 33 paragens.
+
+O link **Abrir no Google Maps** usa só as coordenadas, nunca precisa de chave.
 
 ## Backup
 

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { findPhoto, photoForWikidata, photoUrl, mapsUrl } from '../places.js'
+import { mapsUrl } from '../places.js'
 
 // Extrai coordenadas de uma colagem: "43.5, 16.4", um link do Google Maps
 // com @lat,lng, ou o formato !3dLAT!4dLNG. Devolve {lat,lng} ou null.
@@ -20,39 +20,24 @@ function parseCoords(text) {
   return null
 }
 
-export default function LocationPicker({ name, lat, lng, photo, onPick, onClear }) {
+export default function LocationPicker({ lat, lng, onPick, onClear }) {
   const [q, setQ] = useState('')
   const [results, setResults] = useState([])
   const [status, setStatus] = useState('idle') // idle | loading | empty | error
-  const [foto, setFoto] = useState('idle') // idle | loading | empty | error
   const hasCoords = typeof lat === 'number' && typeof lng === 'number'
-
-  // `buscar` devolve o nome do ficheiro, ou null. Só muda a origem do id.
-  async function guardarFoto(buscar) {
-    setFoto('loading')
-    try {
-      const p = await buscar()
-      onPick({ photo: p })
-      setFoto(p ? 'idle' : 'empty')
-    } catch {
-      setFoto('error')
-    }
-  }
 
   async function search() {
     const text = q.trim()
     if (!text) return
 
-    // 1) Coordenadas ou link colado — resolve sem rede. Aqui não há id do
-    // Wikidata para aproveitar, por isso a foto procura-se pelo nome da
-    // paragem, como faz o botão.
+    // 1) Coordenadas ou link colado — resolve sem rede. As fotos não são
+    // procuradas aqui: quem as vai buscar é o mapa, ao abrir o popup.
     const direct = parseCoords(text)
     if (direct) {
       onPick(direct)
       setResults([])
       setStatus('idle')
       setQ('')
-      guardarFoto(() => findPhoto(name, direct.lat, direct.lng))
       return
     }
 
@@ -87,8 +72,6 @@ export default function LocationPicker({ name, lat, lng, photo, onPick, onClear 
     setResults([])
     setStatus('idle')
     setQ('')
-    // A foto vem logo a seguir, para não obrigar a um segundo clique.
-    guardarFoto(() => photoForWikidata(r.extratags?.wikidata))
   }
 
   return (
@@ -96,43 +79,18 @@ export default function LocationPicker({ name, lat, lng, photo, onPick, onClear 
       <span className="field-label">Localização no mapa</span>
 
       {hasCoords && (
-        <>
-          <div className="loc-current">
-            <span className="loc-pin" aria-hidden="true">📍</span>
-            <span className="loc-coords">
-              {lat.toFixed(4)}, {lng.toFixed(4)}
-            </span>
-            <a className="loc-maps" href={mapsUrl(lat, lng)} target="_blank" rel="noopener noreferrer">
-              Google Maps ↗
-            </a>
-            <button type="button" className="loc-clear" onClick={onClear}>
-              remover
-            </button>
-          </div>
-
-          <div className="loc-foto">
-            {photo && <img src={photoUrl(photo, 200)} alt="" loading="lazy" />}
-            <div className="loc-foto-acoes">
-              <button
-                type="button"
-                className="link-btn"
-                onClick={() => guardarFoto(() => findPhoto(name, lat, lng))}
-                disabled={foto === 'loading'}
-              >
-                {foto === 'loading' ? 'A procurar…' : photo ? 'Trocar foto' : 'Procurar foto'}
-              </button>
-              {photo && (
-                <button type="button" className="loc-clear" onClick={() => onPick({ photo: null })}>
-                  remover foto
-                </button>
-              )}
-            </div>
-            {foto === 'empty' && (
-              <p className="hint">Sem foto no Wikidata para este sítio. Sítios conhecidos costumam ter; praias e restaurantes muitas vezes não.</p>
-            )}
-            {foto === 'error' && <p className="hint">Falhou a procura de foto. Tenta outra vez.</p>}
-          </div>
-        </>
+        <div className="loc-current">
+          <span className="loc-pin" aria-hidden="true">📍</span>
+          <span className="loc-coords">
+            {lat.toFixed(4)}, {lng.toFixed(4)}
+          </span>
+          <a className="loc-maps" href={mapsUrl(lat, lng)} target="_blank" rel="noopener noreferrer">
+            Google Maps ↗
+          </a>
+          <button type="button" className="loc-clear" onClick={onClear}>
+            remover
+          </button>
+        </div>
       )}
 
       <div className="loc-search">

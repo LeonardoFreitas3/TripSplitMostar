@@ -1,42 +1,49 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import L from 'leaflet'
-import { findPhoto, photoUrl, mapsUrl } from '../places.js'
+import { findPhotos, mapsUrl } from '../places.js'
 
-// Paragens antigas não têm foto guardada — só ficam com uma quando se lhes
-// mexe na localização. Por isso procura-se ao abrir o popup, e guarda-se aqui
-// para não repetir o pedido. É de sessão: recarregar a página volta a pedir,
-// mas o Wikidata é gratuito e a resposta é rápida.
-const fotos = new Map() // "nome|lat" -> nome do ficheiro | null (= não tem)
+// Nada é guardado na viagem: as fotos procuram-se ao abrir o popup e ficam
+// aqui até se recarregar a página. Assim uma paragem nova mostra fotos sem
+// ter de se lhe tocar, e uma paragem que muda de sítio muda de fotos.
+const fotos = new Map() // "nome|lat" -> array de URLs
 
-// A foto entra por baixo da descrição. O conteúdo é montado aqui porque o
-// popup tem de ser reconstruído quando a foto chega: mexer no DOM à mão não
-// serve, o Leaflet reescreve o popup a partir do conteúdo que guardou.
-function popupHtml(stop, dayNum, base, file) {
+// Só a primeira imagem carrega de imediato; as outras esperam que se lá
+// chegue a arrastar. Cada imagem vista é um pedido faturável ao Google.
+function galeria(urls) {
+  if (!urls.length) return ''
+  const imgs = urls
+    .map((u, i) => `<img src="${escapeHtml(u)}" alt=""${i ? ' loading="lazy"' : ''}>`)
+    .join('')
+  return `<div class="pop-galeria">${imgs}</div>`
+}
+
+// O conteúdo é montado aqui porque o popup tem de ser reconstruído quando as
+// fotos chegam: mexer no DOM à mão não serve, o Leaflet reescreve o popup a
+// partir do conteúdo que guardou.
+function popupHtml(stop, dayNum, base, urls) {
   return (
     `<strong>${escapeHtml(stop.name)}</strong>` +
     `<div class="pop-meta">Dia ${dayNum} · ${escapeHtml(BASE_LABEL[base] || base)}` +
     (stop.time ? ` · ${escapeHtml(stop.time)}` : '') +
     `</div>` +
     (stop.notes ? `<div class="pop-notes">${escapeHtml(stop.notes)}</div>` : '') +
-    (file ? `<img class="pop-img" src="${escapeHtml(photoUrl(file, 320))}" alt="">` : '') +
+    galeria(urls) +
     `<a class="pop-link" href="${escapeHtml(mapsUrl(stop.lat, stop.lng))}" target="_blank" rel="noopener noreferrer">Abrir no Google Maps ↗</a>`
   )
 }
 
-async function encherFoto(stop, dayNum, base, popup) {
-  if (stop.photo) return
+async function encherFotos(stop, dayNum, base, popup) {
   const chave = `${stop.name}|${stop.lat}`
-  if (fotos.get(chave) === null) return
-  let file = fotos.get(chave)
-  if (file === undefined) {
+  let urls = fotos.get(chave)
+  if (urls === undefined) {
     try {
-      file = await findPhoto(stop.name, stop.lat, stop.lng)
+      urls = await findPhotos(stop.name, stop.lat, stop.lng)
     } catch {
-      return // Falha de rede não é "não tem foto": não guarda, tenta na próxima.
+      return // Falha de rede não é "não tem fotos": não guarda, tenta na próxima.
     }
-    fotos.set(chave, file)
+    fotos.set(chave, urls)
   }
-  if (file) popup.setContent(popupHtml(stop, dayNum, base, file))
+  if (urls.length) popup.setContent(popupHtml(stop, dayNum, base, urls))
 }
 
 const BASE_LABEL = { split: 'Split', mostar: 'Mostar', travel: 'Viagem' }
@@ -102,9 +109,9 @@ export default function Mapa({ data, colors }) {
         pts.push(latlng)
         allPts.push(latlng)
         const marker = L.marker(latlng, { icon: stopIcon(color, dayNum) })
-          .bindPopup(popupHtml(stop, dayNum, day.base, stop.photo))
+          .bindPopup(popupHtml(stop, dayNum, day.base, fotos.get(`${stop.name}|${stop.lat}`) || []))
           .addTo(layer)
-        marker.on('popupopen', (e) => encherFoto(stop, dayNum, day.base, e.popup))
+        marker.on('popupopen', (e) => encherFotos(stop, dayNum, day.base, e.popup))
       })
 
       // Rota tracejada ligando as paragens do dia, pela ordem.

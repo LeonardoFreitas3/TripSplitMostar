@@ -1,5 +1,42 @@
-// Fotos das paragens sem chave nem faturação: OpenStreetMap → Wikidata →
-// Wikimedia Commons.
+// Fotos das paragens. Com chave do Google usa-se a Places API (New), que tem
+// fotos de quase tudo — restaurantes, hotéis, praias. Sem chave cai-se no
+// Wikidata, que é grátis mas só cobre monumentos e sítios conhecidos.
+
+const GOOGLE = import.meta.env.VITE_GOOGLE_PLACES_KEY
+
+// Fotos do sítio que está nestas coordenadas, no máximo 10. Procura por
+// coordenadas e não por nome: os nomes das paragens são texto livre em
+// português e o que interessa é o lugar onde o pin está.
+async function fotosGoogle(lat, lng) {
+  const res = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': GOOGLE,
+      'X-Goog-FieldMask': 'places.photos',
+    },
+    body: JSON.stringify({
+      maxResultCount: 1,
+      rankPreference: 'POPULARITY',
+      locationRestriction: { circle: { center: { latitude: lat, longitude: lng }, radius: 80 } },
+    }),
+  })
+  if (!res.ok) throw new Error(`Places respondeu ${res.status}`)
+  const data = await res.json()
+  return (data.places?.[0]?.photos || [])
+    .slice(0, 10)
+    .map((p) => `https://places.googleapis.com/v1/${p.name}/media?maxHeightPx=400&key=${GOOGLE}`)
+}
+
+// Devolve uma lista de URLs de imagem (vazia se não houver nada).
+export async function findPhotos(name, lat, lng) {
+  if (typeof lat !== 'number' || typeof lng !== 'number') return []
+  if (GOOGLE) return fotosGoogle(lat, lng)
+  const file = await findPhoto(name, lat, lng)
+  return file ? [photoUrl(file, 400)] : []
+}
+
+// --- Alternativa sem chave: OpenStreetMap → Wikidata → Wikimedia Commons ---
 //
 // A pesquisa do Nominatim que já fazíamos traz, com extratags=1, o id do
 // Wikidata do sítio. O Wikidata diz qual é a imagem oficial (propriedade
@@ -10,7 +47,7 @@
 const WIKIDATA = 'https://www.wikidata.org/w/api.php?origin=*&format=json&action=wbgetentities&props=claims&ids='
 
 // Nome do ficheiro da imagem de um id do Wikidata (ou null se não tiver).
-export async function photoForWikidata(id) {
+async function photoForWikidata(id) {
   if (!id) return null
   const res = await fetch(WIKIDATA + encodeURIComponent(id))
   if (!res.ok) throw new Error(`Wikidata respondeu ${res.status}`)
@@ -67,8 +104,7 @@ async function idWikidata(q, lat, lng) {
   return data.find((d) => d.extratags?.wikidata)?.extratags.wikidata || null
 }
 
-// Para paragens que já têm localização mas nunca passaram pela pesquisa.
-export async function findPhoto(name, lat, lng) {
+async function findPhoto(name, lat, lng) {
   const q = nomeDoSitio(name)
   if (!q) return null
   const curto = semDescritor(q)
@@ -79,7 +115,7 @@ export async function findPhoto(name, lat, lng) {
   return null
 }
 
-export function photoUrl(file, px = 400) {
+function photoUrl(file, px = 400) {
   return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=${px}`
 }
 
