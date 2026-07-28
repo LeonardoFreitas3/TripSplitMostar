@@ -53,20 +53,39 @@ create table trips (
 alter table trips enable row level security;
 
 -- Sem login: qualquer pessoa com o URL da app pode ler e editar o itinerário.
-create policy "acesso publico" on trips for all using (true) with check (true);
+create policy "so autenticados" on trips for all
+  to authenticated using (true) with check (true);
 ```
 
 Uma linha por viagem; o título e os dias vivem todos dentro do `data`. As
 viagens criam-se na app (**+ Nova viagem**), não é preciso inserir nada à mão.
 
+## Acesso (login obrigatório)
+
+A app pede email e password. A password não é verificada no browser — é a
+policy acima que exige sessão autenticada, por isso ir direto à API REST com a
+chave publishable também não devolve nada.
+
+No painel do Supabase:
+
+1. **Authentication → Users → Add user**: cria o utilizador com email e
+   password, com *Auto Confirm User* ligado.
+2. **Authentication → Sign In / Providers → Email**: desliga **Allow new
+   users to sign up**. Sem isto, qualquer pessoa cria uma conta e entra.
+
+Para dar acesso a outra pessoa, cria-lhe um utilizador da mesma forma. Todos
+os utilizadores autenticados veem todas as viagens — não há dono por viagem.
+
+A sessão fica guardada no dispositivo, portanto o login não se repete a cada
+visita. **⋯ → Terminar sessão** (ou **Sair**, na lista) fecha-a.
+
 Depois copia `.env.example` para `.env` e preenche com o **Project URL** e a
 **anon key** (Settings → API). Para o GitHub Pages, mete os mesmos dois valores
 em **Settings → Secrets and variables → Actions**, com os mesmos nomes.
 
-> A chave anon vai no bundle e a policy acima é aberta: quem souber o endereço
-> da app pode editar o itinerário. Para uma viagem entre amigos chega; se
-> quiseres travar, ativa Auth no Supabase e troca a policy por `auth.uid() is
-> not null`.
+> A chave publishable vai no bundle — é suposto, foi feita para ser pública.
+> Quem protege os dados são as policies: com `to authenticated`, a chave
+> sozinha não lê nem escreve nada.
 
 Sem as variáveis definidas a app não arranca — mostra o erro em vez de fingir
 que guardou.
@@ -101,7 +120,8 @@ src/
   data.js               Cores por dia
   supabase.js           Cliente Supabase (ou null, se faltarem env vars)
   storage.js            Listar/criar/ler/gravar viagens + exportar/importar JSON
-  App.jsx               Rota no hash (lista vs viagem), estado e cabeçalho
+  App.jsx               Sessão, rota no hash (lista vs viagem) e cabeçalho
+  components/Login.jsx   Ecrã de entrada (Supabase Auth)
   components/Trips.jsx   Página inicial: lista de viagens + criar nova
   components/Plano.jsx   Lista de dias com edição
   components/Mapa.jsx    Mapa Leaflet (marcadores, rotas, filtros)

@@ -600,6 +600,41 @@ input, textarea { font-family: inherit; }
   }
 }
 
+/* ---------- Login ---------- */
+.login {
+  width: 100%;
+  max-width: 340px;
+  margin: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.login h1 {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 24px;
+  letter-spacing: -0.021em;
+  margin: 0;
+}
+.login-sub { margin: -10px 0 4px; font-size: 13.5px; color: var(--muted); }
+.login-erro { margin: 0; font-size: 13px; color: var(--danger); }
+.login-btn {
+  margin-top: 4px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--bg);
+  font-weight: 500;
+  font-size: 14.5px;
+  padding: 11px;
+  border-radius: var(--r-sm);
+  transition: opacity var(--t);
+}
+.login-btn:disabled { opacity: 0.5; }
+@media (hover: hover) {
+  .login-btn:not(:disabled):hover { opacity: 0.85; }
+}
+
 /* ---------- Estado (carregar / erro) ---------- */
 .estado {
   display: grid;

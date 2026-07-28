@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { listTrips, createTrip, deleteTrip } from '../storage.js'
+import { supabase } from '../supabase.js'
 
 export default function Trips() {
   const [trips, setTrips] = useState(null)
@@ -43,6 +44,9 @@ export default function Trips() {
               {trips.length} {trips.length === 1 ? 'viagem' : 'viagens'}
             </span>
           </div>
+          <button className="link-btn" onClick={() => supabase.auth.signOut()}>
+            Sair
+          </button>
         </div>
       </header>
 

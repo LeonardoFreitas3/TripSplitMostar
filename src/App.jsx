@@ -4,16 +4,34 @@ import { loadData, saveData, exportData, importData, uid } from './storage.js'
 import Plano from './components/Plano.jsx'
 import Mapa from './components/Mapa.jsx'
 import Trips from './components/Trips.jsx'
+import Login from './components/Login.jsx'
+import { supabase } from './supabase.js'
 
 // Rota no hash: sem hash é a lista de viagens, #<id> abre essa viagem.
 export default function App() {
   const [tripId, setTripId] = useState(() => location.hash.slice(1))
+  const [sessao, setSessao] = useState() // undefined = ainda não se sabe
 
   useEffect(() => {
     const on = () => setTripId(location.hash.slice(1))
     window.addEventListener('hashchange', on)
     return () => window.removeEventListener('hashchange', on)
   }, [])
+
+  useEffect(() => {
+    if (!supabase) return
+    supabase.auth.getSession().then(({ data }) => setSessao(data.session))
+    const { data } = supabase.auth.onAuthStateChange((_e, s) => setSessao(s))
+    return () => data.subscription.unsubscribe()
+  }, [])
+
+  if (!supabase) {
+    return <div className="estado">Supabase não configurado (falta o .env).</div>
+  }
+  // O ecrã de login é só a porta: quem protege os dados são as policies da
+  // base de dados, que exigem sessão autenticada.
+  if (sessao === undefined) return <div className="estado">A carregar…</div>
+  if (!sessao) return <Login />
 
   return tripId ? <Trip key={tripId} id={tripId} /> : <Trips />
 }
@@ -200,6 +218,7 @@ function Trip({ id }) {
             <div className="menu" role="menu">
               <button role="menuitem" onClick={handleExport}>Exportar (.json)</button>
               <button role="menuitem" onClick={handleImportClick}>Importar (.json)</button>
+              <button role="menuitem" onClick={() => supabase.auth.signOut()}>Terminar sessão</button>
             </div>
           </>
         )}
