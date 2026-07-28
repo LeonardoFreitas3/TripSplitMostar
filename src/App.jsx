@@ -245,7 +245,13 @@ function Trip({ id }) {
             onMoveStop={moveStop}
           />
         )}
-        {(wide || view === 'mapa') && <Mapa data={data} colors={DAY_COLORS} />}
+        {(wide || view === 'mapa') && (
+          <Mapa
+            data={data}
+            colors={DAY_COLORS}
+            onPhotos={(dayId, stopId, photos) => updateStop(dayId, stopId, { photos })}
+          />
+        )}
       </main>
 
       {toast && <div className="toast" role="status">{toast}</div>}

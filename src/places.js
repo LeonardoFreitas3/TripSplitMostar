@@ -23,17 +23,24 @@ async function fotosGoogle(lat, lng) {
   })
   if (!res.ok) throw new Error(`Places respondeu ${res.status}`)
   const data = await res.json()
-  return (data.places?.[0]?.photos || [])
-    .slice(0, 10)
-    .map((p) => `https://places.googleapis.com/v1/${p.name}/media?maxHeightPx=400&key=${GOOGLE}`)
+  return (data.places?.[0]?.photos || []).slice(0, 10).map((p) => p.name)
 }
 
-// Devolve uma lista de URLs de imagem (vazia se não houver nada).
+// Referências de fotos, para guardar na paragem. Guarda-se a referência e não
+// o URL: o URL do Google leva a chave lá dentro e deixaria de servir assim que
+// a chave mudasse.
 export async function findPhotos(name, lat, lng) {
   if (typeof lat !== 'number' || typeof lng !== 'number') return []
   if (GOOGLE) return fotosGoogle(lat, lng)
   const file = await findPhoto(name, lat, lng)
-  return file ? [photoUrl(file, 400)] : []
+  return file ? [file] : []
+}
+
+// As do Google começam por "places/"; as outras são ficheiros do Commons.
+export function photoSrc(ref, px = 400) {
+  return ref.startsWith('places/')
+    ? `https://places.googleapis.com/v1/${ref}/media?maxHeightPx=${px}&key=${GOOGLE}`
+    : photoUrl(ref, px)
 }
 
 // --- Alternativa sem chave: OpenStreetMap → Wikidata → Wikimedia Commons ---
