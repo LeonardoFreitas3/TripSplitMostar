@@ -1,6 +1,43 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import L from 'leaflet'
-import { photoUrl, mapsUrl } from '../places.js'
+import { findPhoto, photoUrl, mapsUrl } from '../places.js'
+
+// Paragens antigas não têm foto guardada — só ficam com uma quando se lhes
+// mexe na localização. Por isso procura-se ao abrir o popup, e guarda-se aqui
+// para não repetir o pedido. É de sessão: recarregar a página volta a pedir,
+// mas o Wikidata é gratuito e a resposta é rápida.
+const fotos = new Map() // "nome|lat" -> nome do ficheiro | null (= não tem)
+
+// A foto entra por baixo da descrição. O conteúdo é montado aqui porque o
+// popup tem de ser reconstruído quando a foto chega: mexer no DOM à mão não
+// serve, o Leaflet reescreve o popup a partir do conteúdo que guardou.
+function popupHtml(stop, dayNum, base, file) {
+  return (
+    `<strong>${escapeHtml(stop.name)}</strong>` +
+    `<div class="pop-meta">Dia ${dayNum} · ${escapeHtml(BASE_LABEL[base] || base)}` +
+    (stop.time ? ` · ${escapeHtml(stop.time)}` : '') +
+    `</div>` +
+    (stop.notes ? `<div class="pop-notes">${escapeHtml(stop.notes)}</div>` : '') +
+    (file ? `<img class="pop-img" src="${escapeHtml(photoUrl(file, 320))}" alt="">` : '') +
+    `<a class="pop-link" href="${escapeHtml(mapsUrl(stop.lat, stop.lng))}" target="_blank" rel="noopener noreferrer">Abrir no Google Maps ↗</a>`
+  )
+}
+
+async function encherFoto(stop, dayNum, base, popup) {
+  if (stop.photo) return
+  const chave = `${stop.name}|${stop.lat}`
+  if (fotos.get(chave) === null) return
+  let file = fotos.get(chave)
+  if (file === undefined) {
+    try {
+      file = await findPhoto(stop.name, stop.lat, stop.lng)
+    } catch {
+      return // Falha de rede não é "não tem foto": não guarda, tenta na próxima.
+    }
+    fotos.set(chave, file)
+  }
+  if (file) popup.setContent(popupHtml(stop, dayNum, base, file))
+}
 
 const BASE_LABEL = { split: 'Split', mostar: 'Mostar', travel: 'Viagem' }
 
@@ -64,19 +101,10 @@ export default function Mapa({ data, colors }) {
         const latlng = [stop.lat, stop.lng]
         pts.push(latlng)
         allPts.push(latlng)
-        L.marker(latlng, { icon: stopIcon(color, dayNum) })
-          .bindPopup(
-            (stop.photo
-              ? `<img class="pop-img" src="${escapeHtml(photoUrl(stop.photo, 320))}" alt="">`
-              : '') +
-              `<strong>${escapeHtml(stop.name)}</strong>` +
-              `<div class="pop-meta">Dia ${dayNum} · ${escapeHtml(BASE_LABEL[day.base] || day.base)}` +
-              (stop.time ? ` · ${escapeHtml(stop.time)}` : '') +
-              `</div>` +
-              (stop.notes ? `<div class="pop-notes">${escapeHtml(stop.notes)}</div>` : '') +
-              `<a class="pop-link" href="${escapeHtml(mapsUrl(stop.lat, stop.lng))}" target="_blank" rel="noopener noreferrer">Abrir no Google Maps ↗</a>`
-          )
+        const marker = L.marker(latlng, { icon: stopIcon(color, dayNum) })
+          .bindPopup(popupHtml(stop, dayNum, day.base, stop.photo))
           .addTo(layer)
+        marker.on('popupopen', (e) => encherFoto(stop, dayNum, day.base, e.popup))
       })
 
       // Rota tracejada ligando as paragens do dia, pela ordem.

@@ -693,7 +693,7 @@ input, textarea { font-family: inherit; }
   height: 130px;
   object-fit: cover;
   border-radius: var(--r-sm);
-  margin-bottom: 9px;
+  margin-top: 9px;
   background: var(--surface-2);
 }
 .pop-link {
