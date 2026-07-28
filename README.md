@@ -71,6 +71,31 @@ em **Settings → Secrets and variables → Actions**, com os mesmos nomes.
 Sem as variáveis definidas a app não arranca — mostra o erro em vez de fingir
 que guardou.
 
+## Fotos das paragens (opcional)
+
+O popup de cada paragem no mapa pode mostrar uma foto do Google. É opcional:
+sem a chave, a app funciona na mesma, só não mostra fotos. O link "Abrir no
+Google Maps" funciona sempre, não depende de chave nenhuma.
+
+1. [Google Cloud Console](https://console.cloud.google.com/) → cria um
+   projeto e **ativa a faturação** (a Places API não funciona sem isso).
+2. Ativa a **Places API (New)**. A antiga não serve: não tem CORS e o browser
+   bloqueia os pedidos.
+3. Cria uma chave em **APIs & Services → Credentials** e **restringe-a**:
+   - *Application restrictions* → **Websites**, com
+     `https://<utilizador>.github.io/*` e `http://localhost:5173/*`
+   - *API restrictions* → só a **Places API (New)**
+4. Põe a chave em `VITE_GOOGLE_PLACES_KEY`, no `.env` e nos secrets do GitHub.
+
+> A chave vai no bundle, como todas as `VITE_*`. A restrição por website é o
+> que impede que alguém a copie e a use à tua custa — sem ela, a chave está
+> aberta a quem abrir o site. Vale a pena pôr também um limite de orçamento no
+> projeto do Google Cloud.
+
+A foto é procurada quando escolhes um sítio na pesquisa, e fica guardada na
+paragem — não há um pedido novo de cada vez que abres o mapa. Para as paragens
+que já tinham localização, há um botão **Procurar foto** no editor.
+
 ## Backup
 
 - Menu **⋯ → Exportar** descarrega um `.json` da viagem aberta.

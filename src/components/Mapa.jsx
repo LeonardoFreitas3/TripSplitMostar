@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import L from 'leaflet'
+import { photoUrl, mapsUrl, hasPlaces } from '../places.js'
 
 const BASE_LABEL = { split: 'Split', mostar: 'Mostar', travel: 'Viagem' }
 
@@ -65,11 +66,15 @@ export default function Mapa({ data, colors }) {
         allPts.push(latlng)
         L.marker(latlng, { icon: stopIcon(color, dayNum) })
           .bindPopup(
-            `<strong>${escapeHtml(stop.name)}</strong>` +
+            (hasPlaces && stop.photo
+              ? `<img class="pop-img" src="${escapeHtml(photoUrl(stop.photo, 220))}" alt="" loading="lazy">`
+              : '') +
+              `<strong>${escapeHtml(stop.name)}</strong>` +
               `<div class="pop-meta">Dia ${dayNum} · ${escapeHtml(BASE_LABEL[day.base] || day.base)}` +
               (stop.time ? ` · ${escapeHtml(stop.time)}` : '') +
               `</div>` +
-              (stop.notes ? `<div class="pop-notes">${escapeHtml(stop.notes)}</div>` : '')
+              (stop.notes ? `<div class="pop-notes">${escapeHtml(stop.notes)}</div>` : '') +
+              `<a class="pop-link" href="${escapeHtml(mapsUrl(stop.lat, stop.lng))}" target="_blank" rel="noopener noreferrer">Abrir no Google Maps ↗</a>`
           )
           .addTo(layer)
       })

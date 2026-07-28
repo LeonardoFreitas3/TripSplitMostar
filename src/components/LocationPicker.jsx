@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { findPhoto, photoUrl, mapsUrl, hasPlaces } from '../places.js'
 
 // Extrai coordenadas de uma colagem: "43.5, 16.4", um link do Google Maps
 // com @lat,lng, ou o formato !3dLAT!4dLNG. Devolve {lat,lng} ou null.
@@ -19,11 +20,23 @@ function parseCoords(text) {
   return null
 }
 
-export default function LocationPicker({ lat, lng, onPick, onClear }) {
+export default function LocationPicker({ name, lat, lng, photo, onPick, onClear }) {
   const [q, setQ] = useState('')
   const [results, setResults] = useState([])
   const [status, setStatus] = useState('idle') // idle | loading | empty | error
+  const [foto, setFoto] = useState('idle') // idle | loading | empty | error
   const hasCoords = typeof lat === 'number' && typeof lng === 'number'
+
+  async function procurarFoto(nome, la, ln) {
+    setFoto('loading')
+    try {
+      const p = await findPhoto(nome, la, ln)
+      onPick({ photo: p })
+      setFoto(p ? 'idle' : 'empty')
+    } catch {
+      setFoto('error')
+    }
+  }
 
   async function search() {
     const text = q.trim()
@@ -61,14 +74,15 @@ export default function LocationPicker({ lat, lng, onPick, onClear }) {
   }
 
   function choose(r) {
-    onPick({
-      lat: Number(r.lat),
-      lng: Number(r.lon),
-      name: (r.name && r.name.trim()) || r.display_name.split(',')[0].trim(),
-    })
+    const escolhido = (r.name && r.name.trim()) || r.display_name.split(',')[0].trim()
+    const la = Number(r.lat)
+    const ln = Number(r.lon)
+    onPick({ lat: la, lng: ln, name: escolhido })
     setResults([])
     setStatus('idle')
     setQ('')
+    // A foto vem logo a seguir, para não obrigar a um segundo clique.
+    if (hasPlaces) procurarFoto(escolhido, la, ln)
   }
 
   return (
@@ -76,15 +90,43 @@ export default function LocationPicker({ lat, lng, onPick, onClear }) {
       <span className="field-label">Localização no mapa</span>
 
       {hasCoords && (
-        <div className="loc-current">
-          <span className="loc-pin" aria-hidden="true">📍</span>
-          <span className="loc-coords">
-            {lat.toFixed(4)}, {lng.toFixed(4)}
-          </span>
-          <button type="button" className="loc-clear" onClick={onClear}>
-            remover
-          </button>
-        </div>
+        <>
+          <div className="loc-current">
+            <span className="loc-pin" aria-hidden="true">📍</span>
+            <span className="loc-coords">
+              {lat.toFixed(4)}, {lng.toFixed(4)}
+            </span>
+            <a className="loc-maps" href={mapsUrl(lat, lng)} target="_blank" rel="noopener noreferrer">
+              Google Maps ↗
+            </a>
+            <button type="button" className="loc-clear" onClick={onClear}>
+              remover
+            </button>
+          </div>
+
+          {hasPlaces && (
+            <div className="loc-foto">
+              {photo && <img src={photoUrl(photo, 200)} alt="" loading="lazy" />}
+              <div className="loc-foto-acoes">
+                <button
+                  type="button"
+                  className="link-btn"
+                  onClick={() => procurarFoto(name, lat, lng)}
+                  disabled={foto === 'loading'}
+                >
+                  {foto === 'loading' ? 'A procurar…' : photo ? 'Trocar foto' : 'Procurar foto'}
+                </button>
+                {photo && (
+                  <button type="button" className="loc-clear" onClick={() => onPick({ photo: null })}>
+                    remover foto
+                  </button>
+                )}
+              </div>
+              {foto === 'empty' && <p className="hint">O Google não tem fotos deste sítio.</p>}
+              {foto === 'error' && <p className="hint">Falhou a procura de foto. Vê a chave da Places API.</p>}
+            </div>
+          )}
+        </>
       )}
 
       <div className="loc-search">

@@ -178,16 +178,25 @@ function DayCard({ day, index, color, onUpdateDay, onRemoveDay, onUpdateStop, on
                     />
                   </label>
                   <LocationPicker
+                    name={stop.name}
                     lat={stop.lat}
                     lng={stop.lng}
+                    photo={stop.photo}
                     onPick={(patch) => {
-                      const next = { lat: patch.lat, lng: patch.lng }
+                      const next = {}
+                      if ('lat' in patch) {
+                        next.lat = patch.lat
+                        next.lng = patch.lng
+                      }
+                      if ('photo' in patch) next.photo = patch.photo
                       if (patch.name && (!stop.name || stop.name === 'Nova paragem')) {
                         next.name = patch.name
                       }
                       onUpdateStop(day.id, stop.id, next)
                     }}
-                    onClear={() => onUpdateStop(day.id, stop.id, { lat: null, lng: null })}
+                    onClear={() =>
+                      onUpdateStop(day.id, stop.id, { lat: null, lng: null, photo: null })
+                    }
                   />
 
                   <div className="stop-actions">
