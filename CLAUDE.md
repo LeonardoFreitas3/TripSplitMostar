@@ -318,23 +318,19 @@ Tudo o que está abaixo está feito, em `main`, e publicado.
 Nenhum destes foi pedido — são as lacunas visíveis, por ordem de utilidade.
 **Confirmar com o utilizador antes de avançar com qualquer um.**
 
-1. Reconciliar o `README.md`: o comentário dentro do SQL ainda diz "Sem login:
-   qualquer pessoa com o URL da app pode ler e editar", mas a policy ao lado já
-   é `to authenticated`. É contraditório e induz em erro quem instalar de novo.
-2. Deixar de depender de `prompt()`/`confirm()` do browser para criar e apagar
+1. Deixar de depender de `prompt()`/`confirm()` do browser para criar e apagar
    viagens (o `prompt()` é bloqueado em alguns contextos e destoa do resto da UI).
-3. Edição das datas e do `meta` da viagem pela UI — hoje `title` e `subtitle` só
+2. Edição das datas e do `meta` da viagem pela UI — hoje `title` e `subtitle` só
    se definem na criação, e `start`/`end` nunca se editam.
-4. Dar coordenadas ao hotel pela UI: o modelo suporta `hotel.lat/lng` e o mapa
+3. Dar coordenadas ao hotel pela UI: o modelo suporta `hotel.lat/lng` e o mapa
    desenha-o, mas o `Plano.jsx` só deixa escrever o nome.
-5. Tornar os rótulos de `base` genéricos (hoje `split`/`mostar`/`travel` estão
+4. Tornar os rótulos de `base` genéricos (hoje `split`/`mostar`/`travel` estão
    escritos no código, resquício da primeira viagem).
 
 ## 12. Problemas conhecidos / dívida técnica
 
 | Problema | Onde | Prioridade |
 |---|---|---|
-| README contradiz-se sobre o acesso (comentário do SQL diz "sem login", a policy exige sessão) | `README.md` | Alta |
 | Última escrita ganha: o auto-save faz `upsert` do objeto inteiro. Dois dispositivos a editar a mesma viagem perdem alterações, sem aviso | `src/storage.js` (`saveData`), `src/App.jsx` | Alta |
 | `hotel.lat`/`hotel.lng` só existem se forem postos à mão no JSON; a UI não os edita | `src/components/Plano.jsx` | Média |
 | `base` com rótulos `split`/`mostar`/`travel` escritos no código | `Plano.jsx` e `Mapa.jsx` (`BASE_LABEL`) | Média |
@@ -352,7 +348,7 @@ Nenhum destes foi pedido — são as lacunas visíveis, por ordem de utilidade.
 
 | Data | Resumo |
 |---|---|
-| 2026-10-26 | Verificado que `main` estava sincronizado com o GitHub; `package-lock.json` passou a ser versionado; criado este `CLAUDE.md` |
+| 2026-10-26 | Verificado que `main` estava sincronizado com o GitHub; `package-lock.json` passou a ser versionado; criado este `CLAUDE.md`; corrigido o comentário do SQL no `README.md`, que dizia o contrário da policy |
 | 2026-07-28 | Fotos por coordenadas em vez de centro do mapa; setas na galeria; fotos apagadas ao mudar de sítio; fotos guardadas na paragem; galeria de 10 fotos do Google; login obrigatório |
 | 2026-07-27 | Layout neutro; apagar viagens; multi-viagem no Supabase; filtro de dia no mapa; plano e mapa lado a lado no PC |
 | 2026-06-15 | Versão inicial: itinerário Split & Mostar estático com React + Vite + Leaflet |

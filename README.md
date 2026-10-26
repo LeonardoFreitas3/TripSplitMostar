@@ -52,7 +52,8 @@ create table trips (
 
 alter table trips enable row level security;
 
--- Sem login: qualquer pessoa com o URL da app pode ler e editar o itinerário.
+-- Só quem tem sessão iniciada lê e escreve. Sem login, nem a app nem a API
+-- REST devolvem o que quer que seja, mesmo com a chave publishable.
 create policy "so autenticados" on trips for all
   to authenticated using (true) with check (true);
 ```
